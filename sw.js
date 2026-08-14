@@ -1,6 +1,6 @@
 /* 생각대로 — 배포 때마다 숫자 ++ (배포 직전 한 번 더 ++ 확인) */
-const CACHE_NAME = 'sgd-v7';
-const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE_NAME = 'sgd-v10';
+const ASSETS = ['./', './index.html', './admin.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

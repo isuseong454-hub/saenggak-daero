@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07060B">
+<title>생각대로 · 관리자</title>
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg0:#07060B; --bg1:#0E0C16;
+  --ac1:#8E7BFF; --ac2:#F0A6FF; --ac3:#B9FF66;
+  --tx1:#F2F0FA; --tx2:#9A94B0; --tx3:#5F5977;
+  --stamp:#E0564B;
+  --glass:rgba(255,255,255,.045); --glass-hi:rgba(255,255,255,.10); --line:rgba(255,255,255,.09);
+  --r-lg:22px; --r-md:16px;
+  --spring:cubic-bezier(.32,1.4,.36,1); --ease:cubic-bezier(.22,.61,.36,1);
+  /* 🟢 브랜드 색 — 아이콘·로그인 창 전용(앱 안쪽 톤과 따로) */
+  --brand-bg:#121410; --brand1:#9BC97E; --brand2:#D9E8A8; --brand-tx:#EFF2E8; --brand-sub:#9AA48E;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg0);color:var(--tx1);min-height:100dvh;overscroll-behavior-y:none;
+  font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  -webkit-font-smoothing:antialiased}
+button{font-family:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:16px}
+svg{stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.26;pointer-events:none;z-index:0}
+.orb1{width:44vmax;height:44vmax;left:-14vmax;top:-16vmax;background:radial-gradient(circle,var(--ac1),transparent 70%)}
+.orb2{width:36vmax;height:36vmax;right:-12vmax;bottom:-10vmax;background:radial-gradient(circle,var(--ac2),transparent 70%)}
+
+/* 로그인 게이트 */
+.lg-ov{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(120% 90% at 50% 0%,color-mix(in srgb,var(--brand1) 15%,var(--brand-bg)),var(--brand-bg) 62%);
+  color:var(--brand-tx)}
+.lg-ov.off{display:none}
+.lg-card{width:min(340px,100%);text-align:center}
+.lg-ov .lg-sub{color:var(--brand-sub)}
+.lg-ov .fld{border-color:rgba(220,240,200,.12)}
+.lg-ov .btn{color:#101408;background:linear-gradient(135deg,var(--brand1),var(--brand2))}
+.lg-ov .btn.ghost{background:none;border:1px solid rgba(220,240,200,.14);color:var(--brand-sub)}
+.lg-tip{margin-top:16px;font-size:11.5px;color:var(--brand-sub);opacity:.75;line-height:1.6}
+.lg-mark{width:70px;height:70px;border-radius:22px;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--brand1),var(--brand2));color:#101408;
+  box-shadow:0 14px 38px color-mix(in srgb,var(--brand1) 42%,transparent)}
+.lg-mark svg{width:32px;height:32px;stroke-width:2}
+.lg-tt{font-size:22px;font-weight:900;letter-spacing:-.02em}
+.lg-sub{font-size:13px;color:var(--tx2);margin:6px 0 22px}
+.fld{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:var(--r-md);
+  color:var(--tx1);padding:14px 16px;margin-bottom:10px;outline:none;transition:border-color .2s}
+.fld:focus{border-color:#fff}
+.err{min-height:18px;font-size:12.5px;color:var(--stamp);margin:2px 0 8px}
+.btn{width:100%;padding:15px;border-radius:var(--r-md);font-size:15.5px;font-weight:800;color:#0B0812;
+  background:linear-gradient(135deg,var(--ac1),var(--ac2));transition:transform .18s var(--spring),opacity .2s}
+.btn:active{transform:scale(.96)}
+.btn[disabled]{opacity:.5}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--tx2);font-weight:700}
+.lg-ov.shake .lg-card{animation:shk .4s}
+@keyframes shk{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
+
+/* 상단바 */
+.tb{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
+  padding:calc(12px + env(safe-area-inset-top)) 18px 12px;
+  background:color-mix(in srgb,var(--bg0) 74%,transparent);backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--line)}
+.tb-l{display:flex;align-items:center;gap:10px}
+.tb-logo{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--ac1),var(--ac2));color:#0B0812}
+.tb-logo svg{width:16px;height:16px;stroke-width:2.2}
+.tb-tt{font-size:16.5px;font-weight:800}
+.tb-tt small{display:block;font-size:10.5px;color:var(--tx3);font-weight:700}
+.tb-r{display:flex;gap:8px}
+.tb-r a,.tb-r button{width:auto;padding:0 13px;height:36px;border-radius:12px;background:var(--glass);
+  border:1px solid var(--line);display:flex;align-items:center;font-size:13px;font-weight:700;
+  color:var(--tx2);text-decoration:none;transition:transform .18s var(--spring)}
+.tb-r a:active,.tb-r button:active{transform:scale(.93)}
+
+/* 탭 */
+.tabs{position:sticky;top:60px;z-index:35;display:flex;gap:7px;padding:12px 18px 10px;overflow-x:auto;
+  background:color-mix(in srgb,var(--bg0) 74%,transparent);backdrop-filter:blur(18px)}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;padding:9px 15px;border-radius:999px;border:1px solid var(--line);
+  font-size:13px;font-weight:800;color:var(--tx2);transition:.18s}
+.tabs button.on{color:var(--tx1);background:color-mix(in srgb,var(--ac1) 22%,transparent);
+  border-color:color-mix(in srgb,var(--ac1) 45%,transparent)}
+
+.wrap{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:6px 18px calc(40px + env(safe-area-inset-bottom))}
+.pane{display:none;animation:fade .3s var(--ease)}
+.pane.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card{background:var(--glass);border:1px solid var(--line);border-top-color:var(--glass-hi);
+  border-radius:var(--r-lg);backdrop-filter:blur(16px);padding:18px;margin-bottom:14px}
+.card h3{font-size:14px;font-weight:800;color:var(--tx2);margin-bottom:10px}
+.lbl{font-size:12px;font-weight:800;color:var(--tx3);margin:12px 2px 5px;display:block}
+
+/* 지표 */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px}
+.m{background:var(--glass);border:1px solid var(--line);border-top-color:var(--glass-hi);border-radius:var(--r-md);padding:14px}
+.m b{font-size:24px;font-weight:900;display:block;letter-spacing:-.02em}
+.m small{font-size:11.5px;color:var(--tx2)}
+.m.hl b{background:linear-gradient(100deg,var(--ac1),var(--ac2));-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* 세그 */
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{padding:9px 14px;border-radius:999px;border:1px solid var(--line);font-size:12.5px;font-weight:800;color:var(--tx2)}
+.seg button.on{color:#0B0812;background:linear-gradient(135deg,var(--ac1),var(--ac2));border:0}
+
+/* ★ 프리미엄 코드 카드 */
+.cc-wrap{margin-top:16px;display:none}
+.cc-wrap.on{display:block;animation:pop .45s var(--spring)}
+@keyframes pop{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:none}}
+.cc{position:relative;border-radius:22px;padding:1.5px;overflow:hidden;
+  background:linear-gradient(135deg,var(--ac1),var(--ac2),var(--ac3),var(--ac1));background-size:300% 300%;
+  animation:ccglow 7s linear infinite}
+@keyframes ccglow{to{background-position:300% 0}}
+.cc-in{border-radius:21px;background:linear-gradient(160deg,#141024,#0A0812);padding:26px 24px 22px;position:relative;overflow:hidden}
+.cc-in::after{content:'';position:absolute;right:-40px;top:-60px;width:180px;height:180px;border-radius:50%;
+  background:radial-gradient(circle,color-mix(in srgb,var(--ac1) 40%,transparent),transparent 70%);pointer-events:none}
+.cc-brand{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;color:var(--tx2)}
+.cc-brand span{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--ac1),var(--ac2));color:#0B0812}
+.cc-brand span svg{width:12px;height:12px;stroke-width:2.4}
+.cc-name{font-size:19px;font-weight:900;margin:16px 0 3px;letter-spacing:-.02em}
+.cc-plan{font-size:11.5px;font-weight:800;color:var(--ac3)}
+.cc-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:29px;font-weight:800;letter-spacing:.14em;
+  margin:18px 0 4px;background:linear-gradient(100deg,var(--ac1),var(--ac2));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.cc-pin{font-size:12.5px;color:var(--tx2)}
+.cc-pin b{color:var(--tx1);font-family:ui-monospace,monospace;letter-spacing:.1em}
+.cc-foot{margin-top:18px;padding-top:14px;border-top:1px dashed var(--line);font-size:11px;color:var(--tx3);line-height:1.6}
+.cc-btns{display:flex;gap:8px;margin-top:12px}
+.cc-btns button{flex:1;padding:12px;border-radius:14px;font-size:13px;font-weight:800;
+  border:1px solid var(--line);color:var(--tx2);transition:transform .18s var(--spring)}
+.cc-btns button:active{transform:scale(.94)}
+.cc-btns button.pr{color:#0B0812;background:linear-gradient(135deg,var(--ac1),var(--ac2));border:0}
+
+/* 목록 */
+.row{display:flex;align-items:center;gap:11px;padding:14px 2px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .av{width:38px;height:38px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:900;background:rgba(0,0,0,.28);border:1px solid var(--line);color:var(--ac1)}
+.row .tx{flex:1;min-width:0}
+.row .tx b{font-size:14px;display:block}
+.row .tx small{font-size:11.5px;color:var(--tx3)}
+.row .tx small i{font-style:normal;color:var(--ac3);font-weight:800}
+.row .tx small i.warn{color:#F0B24E}
+.row .tx small i.dead{color:var(--stamp)}
+.rbtn{padding:7px 10px;border-radius:999px;border:1px solid var(--line);font-size:11.5px;font-weight:800;color:var(--tx2);flex:none}
+.rbtn.del{color:var(--tx3)}
+.empty{padding:26px 8px;text-align:center;color:var(--tx3);font-size:13.5px;line-height:1.7}
+.toast{position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(14px);
+  z-index:120;background:color-mix(in srgb,var(--bg1) 94%,transparent);border:1px solid var(--line);border-radius:999px;
+  padding:11px 18px;font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;
+  transition:opacity .25s,transform .3s var(--spring);backdrop-filter:blur(12px)}
+.toast.on{opacity:1;transform:translateX(-50%)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><symbol id="pen" viewBox="0 0 24 24">
+  <path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol></svg>
+<div class="orb orb1"></div><div class="orb orb2"></div>
+
+<!-- 로그인 게이트 -->
+<div class="lg-ov" id="gate">
+  <div class="lg-card">
+    <div class="lg-mark"><svg viewBox="0 0 24 24"><path d="M12 3 4 6.5v5c0 4.6 3.2 8.6 8 9.5 4.8-.9 8-4.9 8-9.5v-5z"/><path d="m9 12 2 2 4-4"/></svg></div>
+    <div class="lg-tt" id="g-tt">관리자</div>
+    <div class="lg-sub" id="g-sub">생각대로 · 코드 발급과 관리</div>
+    <input class="fld" id="g-id" placeholder="관리자 아이디" autocomplete="off" autocapitalize="characters">
+    <input class="fld" id="g-pin" type="password" placeholder="비밀번호" autocomplete="off">
+    <div class="err" id="g-err"></div>
+    <button class="btn" id="g-go">들어가기</button>
+    <div class="lg-tip">관리자: qkdna12 / 2222 (첫 로그인 후 변경)</div>
+    <div style="margin-top:12px"><a href="index.html" style="font-size:12.5px;color:var(--brand-sub);text-decoration:none">← 앱으로 돌아가기</a></div>
+  </div>
+</div>
+
+<!-- 비번 변경 -->
+<div class="lg-ov off" id="pwgate">
+  <div class="lg-card">
+    <div class="lg-mark"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10.5" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+    <div class="lg-tt" id="p-tt">비밀번호를 바꿔주세요</div>
+    <div class="lg-sub" id="p-sub">임시 비밀번호로 들어왔습니다 — 내 것으로 바꿔야 시작됩니다</div>
+    <input class="fld" id="p-1" type="password" placeholder="새 비밀번호 (4자리 이상)" autocomplete="new-password">
+    <input class="fld" id="p-2" type="password" placeholder="한 번 더" autocomplete="new-password">
+    <div class="err" id="p-err"></div>
+    <button class="btn" id="p-go">이 비밀번호로 바꾸기</button>
+    <button class="btn ghost" id="p-cancel" style="margin-top:9px;display:none">나중에</button>
+  </div>
+</div>
+
+<header class="tb">
+  <div class="tb-l">
+    <span class="tb-logo"><svg viewBox="0 0 24 24"><use href="#pen"/></svg></span>
+    <b class="tb-tt">생각대로<small>관리자</small></b>
+  </div>
+  <div class="tb-r">
+    <a href="index.html">앱으로</a>
+    <button id="tb-out">나가기</button>
+  </div>
+</header>
+
+<div class="tabs" id="tabs">
+  <button data-t="dash" class="on">현황</button>
+  <button data-t="new">코드 발급</button>
+  <button data-t="list">발급 목록</button>
+  <button data-t="set">설정</button>
+</div>
+
+<main class="wrap">
+  <!-- 현황 -->
+  <section class="pane on" id="p-dash">
+    <div class="mgrid" style="margin-bottom:14px">
+      <div class="m"><b id="m-all">0</b><small>총 발급</small></div>
+      <div class="m hl"><b id="m-live">0</b><small>쓰는 중</small></div>
+      <div class="m"><b id="m-soon">0</b><small>만료 임박</small></div>
+      <div class="m"><b id="m-notes">0</b><small>담긴 생각</small></div>
+    </div>
+    <div class="card"><h3>최근 발급</h3><div id="recent"></div></div>
+  </section>
+
+  <!-- 발급 -->
+  <section class="pane" id="p-new">
+    <div class="card">
+      <h3>새 코드 발급</h3>
+      <label class="lbl">이름 (누구에게 주는지)</label>
+      <input class="fld" id="n-name" placeholder="예) 이수성" autocomplete="off">
+      <label class="lbl">코드 — 비우면 자동으로 만들어 줍니다</label>
+      <input class="fld" id="n-code" placeholder="영문·숫자 4~24자" autocomplete="off" autocapitalize="characters">
+      <label class="lbl">기간</label>
+      <div class="seg" id="n-days">
+        <button data-d="30">1개월</button><button data-d="90">3개월</button>
+        <button data-d="180">6개월</button><button data-d="365">1년</button>
+        <button data-d="0" class="on">평생</button>
+      </div>
+      <label class="lbl">메모 (나만 봄)</label>
+      <input class="fld" id="n-memo" placeholder="예) 3기 수강생" autocomplete="off">
+      <div class="err" id="n-err"></div>
+      <button class="btn" id="n-go">코드 만들기</button>
+    </div>
+
+    <div class="cc-wrap" id="cc-wrap">
+      <div class="cc" id="cc">
+        <div class="cc-in">
+          <div class="cc-brand"><span><svg viewBox="0 0 24 24"><use href="#pen"/></svg></span>생각대로</div>
+          <div class="cc-name" id="cc-name">이름</div>
+          <div class="cc-plan" id="cc-plan">평생</div>
+          <div class="cc-code" id="cc-code">CODE</div>
+          <div class="cc-pin">첫 비밀번호 <b id="cc-pin">2222</b></div>
+          <div class="cc-foot" id="cc-foot">앱에서 이 코드와 비밀번호로 들어간 뒤, 비밀번호를 내 것으로 바꾸면 됩니다.</div>
+        </div>
+      </div>
+      <div class="cc-btns">
+        <button class="pr" id="cc-copy">초대 메시지 복사</button>
+        <button id="cc-img">카드 이미지 저장</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 목록 -->
+  <section class="pane" id="p-list">
+    <div class="card">
+      <h3>발급 목록 <span id="l-cnt" style="float:right;font-weight:700;color:var(--tx3)"></span></h3>
+      <input class="fld" id="l-q" placeholder="이름·코드로 찾기" autocomplete="off">
+      <div id="l-rows"></div>
+    </div>
+  </section>
+
+  <!-- 설정 -->
+  <section class="pane" id="p-set">
+    <div class="card">
+      <h3>관리자 비밀번호</h3>
+      <p style="font-size:13px;color:var(--tx2);line-height:1.7">아이디는 <b style="color:var(--tx1)">qkdna12</b>로 고정입니다.
+        비밀번호만 바꿀 수 있어요.</p>
+      <button class="btn" id="s-pw" style="margin-top:12px">비밀번호 바꾸기</button>
+    </div>
+    <div class="card">
+      <h3>서버</h3>
+      <p style="font-size:13px;color:var(--tx2);line-height:1.7">불씨 프로젝트 · 접두어 <b style="color:var(--tx1)">sgd_</b><br>
+        코드는 «금고»이자 «계정»입니다 — 발급하면 그 사람의 생각이 그 금고에 쌓입니다.</p>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPA_URL='https://goaqxjecotkwxrbzbdzc.supabase.co';
+const SUPA_KEY='sb_publishable_Naq2_XethYcwMKG3pR4KUg_9KIxuHNM';
+const AKEY='sgd-adm';
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+let adm={}; try{ adm=JSON.parse(sessionStorage.getItem(AKEY)||'{}') }catch(e){ adm={} }
+let rows=[], days=0;
+
+async function rpc(fn,args){
+  const r=await fetch(SUPA_URL+'/rest/v1/rpc/'+fn,{method:'POST',
+    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json'},
+    body:JSON.stringify(args||{})});
+  if(r.status===404) return {ok:false,msg:'no_server'};
+  try{ return await r.json() }catch(e){ return {ok:false,msg:'parse'} }
+}
+const MSG={no_admin:'관리자 계정이 없어요 (SQL RUN 필요)',wrong:'아이디나 비밀번호가 달라요',
+  locked:'너무 많이 틀렸어요 — 5분 뒤 다시',pin_len:'비밀번호는 4자리 이상',pin_temp:'임시 비밀번호와 달라야 합니다',
+  no_server:'서버가 아직 안 켜졌어요 (sgd-admin-step2.sql RUN 필요)',parse:'연결이 원활하지 않아요',
+  dup:'이미 있는 코드예요',code_len:'코드는 4~24자로',no_code:'그런 코드가 없어요',bad_op:'알 수 없는 요청'};
+const msg=m=>MSG[m]||MSG[(m||'').replace(/^.*:\s*/,'')]||'연결이 원활하지 않아요';
+let tT; function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('on'),2200)}
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmtD=d=>d?new Date(d).toLocaleDateString('ko-KR',{year:'2-digit',month:'numeric',day:'numeric'}):'평생';
+const dleft=d=>d?Math.ceil((new Date(d)-Date.now())/86400000):null;
+
+/* ── 로그인 ── */
+async function login(){
+  const id=$('#g-id').value.trim().toUpperCase(), pin=$('#g-pin').value.trim();
+  const err=$('#g-err'); err.textContent='';
+  if(!id||!pin){ err.textContent='아이디와 비밀번호를 넣어주세요'; return }
+  $('#g-go').disabled=true;
+  const r=await rpc('sgd_admin_login',{p_id:id,p_pin:pin});
+  $('#g-go').disabled=false;
+  if(!r||!r.ok){ err.textContent=msg(r&&r.msg);
+    $('#gate').classList.add('shake'); setTimeout(()=>$('#gate').classList.remove('shake'),420); return }
+  adm={id,pin}; sessionStorage.setItem(AKEY,JSON.stringify(adm));
+  $('#gate').classList.add('off');
+  if(r.must_set) openPw(true); else { toast('들어왔습니다'); load() }
+}
+$('#g-go').addEventListener('click',login);
+['g-id','g-pin'].forEach(i=>$('#'+i).addEventListener('keydown',e=>{ if(e.key==='Enter') login() }));
+$('#tb-out').addEventListener('click',()=>{
+  adm={}; sessionStorage.removeItem(AKEY);
+  $('#gate').classList.remove('off'); $('#g-pin').value=''; toast('나왔습니다');
+});
+
+/* ── 비번 변경 ── */
+function openPw(forced){
+  $('#pwgate').classList.remove('off');
+  $('#p-1').value=''; $('#p-2').value=''; $('#p-err').textContent='';
+  $('#p-tt').textContent=forced?'비밀번호를 바꿔주세요':'비밀번호 변경';
+  $('#p-sub').textContent=forced?'임시 비밀번호로 들어왔습니다 — 내 것으로 바꿔야 시작됩니다':'새 비밀번호를 정하세요';
+  $('#p-cancel').style.display=forced?'none':'block';
+  setTimeout(()=>$('#p-1').focus(),200);
+}
+$('#p-cancel').addEventListener('click',()=>$('#pwgate').classList.add('off'));
+$('#p-go').addEventListener('click',async()=>{
+  const a=$('#p-1').value.trim(), b=$('#p-2').value.trim(), err=$('#p-err');
+  if(a.length<4){ err.textContent='4자리 이상으로 정해주세요'; return }
+  if(a!==b){ err.textContent='두 번 넣은 값이 다릅니다'; return }
+  if(a==='2222'){ err.textContent='임시 비밀번호와 달라야 합니다'; return }
+  $('#p-go').disabled=true;
+  const r=await rpc('sgd_admin_setpin',{p_id:adm.id,p_pin:adm.pin,p_new:a});
+  $('#p-go').disabled=false;
+  if(!r||!r.ok){ err.textContent=msg(r&&r.msg); return }
+  adm.pin=a; sessionStorage.setItem(AKEY,JSON.stringify(adm));
+  $('#pwgate').classList.add('off'); toast('비밀번호를 바꿨습니다'); load();
+});
+$('#s-pw').addEventListener('click',()=>openPw(false));
+
+/* ── 탭 ── */
+$('#tabs').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-t]'); if(!b)return;
+  $$('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  $$('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+b.dataset.t));
+  window.scrollTo(0,0);
+});
+
+/* ── 목록 불러오기 ── */
+async function load(){
+  const r=await rpc('sgd_admin_op',{p_id:adm.id,p_pin:adm.pin,p_op:'list'});
+  if(!r||!r.ok){ toast(msg(r&&r.msg)); return }
+  rows=r.rows||[];
+  const live=rows.filter(x=>!x.expires_at||dleft(x.expires_at)>0).length;
+  const soon=rows.filter(x=>x.expires_at&&dleft(x.expires_at)>0&&dleft(x.expires_at)<=30).length;
+  $('#m-all').textContent=rows.length;
+  $('#m-live').textContent=live;
+  $('#m-soon').textContent=soon;
+  $('#m-notes').textContent=rows.reduce((s,x)=>s+(x.notes||0),0);
+  $('#recent').innerHTML=rows.slice(0,5).map(rowHtml).join('')||'<div class="empty">아직 발급한 코드가 없습니다<br>«코드 발급»에서 첫 코드를 만들어 보세요</div>';
+  renderList();
+}
+function rowHtml(x){
+  const d=dleft(x.expires_at);
+  let tag='<i>평생</i>';
+  if(d!==null) tag = d<=0?'<i class="dead">만료</i>' : d<=30?`<i class="warn">D-${d}</i>` : `<i>D-${d}</i>`;
+  return `<div class="row">
+    <span class="av">${esc((x.name||x.code).slice(0,1))}</span>
+    <span class="tx"><b>${esc(x.name||'(이름 없음)')} · ${esc(x.code)}</b>
+      <small>${tag} · 생각 ${x.notes||0}개 · ${fmtD(x.expires_at)}${x.must_set?' · <i class="warn">임시 비번</i>':''}</small></span>
+    <button class="rbtn" data-op="extend" data-c="${esc(x.code)}">연장</button>
+    <button class="rbtn" data-op="temp" data-c="${esc(x.code)}">임시비번</button>
+    <button class="rbtn del" data-op="delete" data-c="${esc(x.code)}">삭제</button>
+  </div>`;
+}
+function renderList(){
+  const q=$('#l-q').value.trim().toLowerCase();
+  const f=q?rows.filter(x=>(x.name||'').toLowerCase().includes(q)||x.code.toLowerCase().includes(q)):rows;
+  $('#l-cnt').textContent=f.length?f.length+'개':'';
+  $('#l-rows').innerHTML=f.map(rowHtml).join('')||'<div class="empty">찾는 코드가 없어요</div>';
+}
+$('#l-q').addEventListener('input',renderList);
+
+/* ── 목록 조작 ── */
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-op]'); if(!b)return;
+  const op=b.dataset.op, code=b.dataset.c;
+  let args={code};
+  if(op==='extend'){ const d=prompt('며칠 연장할까요? (0 = 평생으로)','365'); if(d===null)return; args.days=parseInt(d)||0 }
+  if(op==='temp'){ if(!confirm(code+' 의 비밀번호를 임시(2222)로 되돌릴까요?\n그 사람은 다음 로그인에서 새로 정하게 됩니다.'))return }
+  if(op==='delete'){ if(!confirm(code+' 를 삭제할까요?\n그 사람의 구름에 담긴 글도 함께 사라집니다.'))return }
+  const r=await rpc('sgd_admin_op',{p_id:adm.id,p_pin:adm.pin,p_op:op,p_args:args});
+  if(!r||!r.ok){ toast(msg(r&&r.msg)); return }
+  toast(op==='extend'?'기간을 바꿨습니다':op==='temp'?'임시 비밀번호 2222로 되돌렸습니다':'삭제했습니다');
+  load();
+});
+
+/* ── 발급 ── */
+$('#n-days').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-d]'); if(!b)return;
+  $$('#n-days button').forEach(x=>x.classList.toggle('on',x===b));
+  days=+b.dataset.d;
+});
+function autoCode(){
+  const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // 헷갈리는 0·O·1·I 제외
+  let s=''; for(let i=0;i<7;i++) s+=A[Math.floor(Math.random()*A.length)];
+  return s;
+}
+$('#n-go').addEventListener('click',async()=>{
+  const name=$('#n-name').value.trim(), memo=$('#n-memo').value.trim();
+  let code=$('#n-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const err=$('#n-err'); err.textContent='';
+  if(!code) code=autoCode();
+  if(code.length<4||code.length>24){ err.textContent='코드는 영문·숫자 4~24자로'; return }
+  $('#n-go').disabled=true;
+  const r=await rpc('sgd_admin_op',{p_id:adm.id,p_pin:adm.pin,p_op:'create',p_args:{code,name,memo,days}});
+  $('#n-go').disabled=false;
+  if(!r||!r.ok){ err.textContent=msg(r&&r.msg); return }
+  $('#cc-name').textContent=name||'생각대로 회원';
+  $('#cc-plan').textContent=days?fmtD(new Date(Date.now()+days*86400000))+' 까지':'평생';
+  $('#cc-code').textContent=code;
+  $('#cc-pin').textContent='2222';
+  $('#cc-wrap').classList.add('on');
+  $('#n-name').value=''; $('#n-code').value=''; $('#n-memo').value='';
+  toast('코드를 만들었습니다');
+  load();
+});
+$('#cc-copy').addEventListener('click',()=>{
+  const code=$('#cc-code').textContent, name=$('#cc-name').textContent;
+  const url=location.href.replace(/admin\.html.*$/,'index.html');
+  const t=`${name}님, «생각대로» 초대합니다 ✍️\n\n떠오른 생각을 3초에 잡고, 실행까지 데려가는 앱이에요.\n\n주소: ${url}\n코드: ${code}\n첫 비밀번호: 2222\n\n들어가신 뒤 비밀번호를 바꿔 주세요.\n(아이폰은 사파리에서 열고 «공유 → 홈 화면에 추가» 하면 앱처럼 씁니다)`;
+  navigator.clipboard.writeText(t).then(()=>toast('초대 메시지를 복사했어요')).catch(()=>toast('복사가 막혔어요'));
+});
+$('#cc-img').addEventListener('click',()=>{
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+  const go=()=>window.html2canvas($('#cc'),{backgroundColor:null,scale:3,useCORS:true,logging:false})
+    .then(c=>{ const a=document.createElement('a'); a.href=c.toDataURL('image/png');
+      a.download='생각대로-'+$('#cc-code').textContent+'.png'; a.click(); toast('카드 이미지를 내려받았어요') })
+    .catch(()=>toast('이미지 저장에 실패했어요'));
+  if(window.html2canvas) go(); else { s.onload=go; s.onerror=()=>toast('이미지 도구를 못 불러왔어요'); document.head.appendChild(s) }
+});
+
+/* 시작 — 세션이 있으면 바로 */
+if(adm.id&&adm.pin){ $('#gate').classList.add('off'); load() }
+else setTimeout(()=>$('#g-id').focus(),300);
+</script>
+</body>
+</html>
