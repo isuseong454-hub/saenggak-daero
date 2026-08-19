@@ -161,6 +161,7 @@ input[type=file]{display:none}
 const $ = s => document.querySelector(s);
 const logBox = $('#log'), prog = $('#prog'), barI = $('#barI'), plabel = $('#plabel');
 let T0 = Date.now();
+let TRAIL = [];
 
 function log(msg, cls){
   logBox.classList.add('on');
@@ -168,12 +169,37 @@ function log(msg, cls){
   logBox.insertAdjacentHTML('beforeend',
     `<span class="t">[${t}s]</span> <span class="${cls || ''}">${msg}</span>\n`);
   logBox.scrollTop = logBox.scrollHeight;
+  TRAIL.push('[' + t + 's] ' + msg);
+  try { localStorage.setItem('stt-trail', JSON.stringify({ done: false, lines: TRAIL.slice(-40) })); } catch(e){}
+}
+function markDone(){
+  try {
+    var r = JSON.parse(localStorage.getItem('stt-trail') || '{}');
+    r.done = true; localStorage.setItem('stt-trail', JSON.stringify(r));
+  } catch(e){}
 }
 function setProg(p, label){
   prog.classList.add('on');
   barI.style.width = Math.max(0, Math.min(100, p)) + '%';
   plabel.innerHTML = label;
 }
+(function(){
+  try {
+    var r = JSON.parse(localStorage.getItem('stt-trail') || 'null');
+    if (r && !r.done && r.lines && r.lines.length) {
+      var box = document.createElement('div');
+      box.className = 'card';
+      box.style.borderColor = 'rgba(245,185,74,.45)';
+      box.innerHTML = '<h2 style="color:var(--amber)">지난번엔 여기서 멈췄습니다</h2>'
+        + '<div class="log on" style="margin-top:0">' + r.lines.join('\n') + '</div>'
+        + '<p style="font-size:11.5px;color:var(--tx3);line-height:1.6;margin:10px 0 0">'
+        + '마지막 줄이 «내려받는 중»이면 <b>용량이 커서 튕긴 것</b>입니다 — 한 단계 작은 크기로 내려가세요.<br>'
+        + '«받아쓰기 시작»에서 멈췄다면 계산 도중 메모리가 모자란 것입니다.</p>';
+      var wrap = document.querySelector('.wrap');
+      wrap.insertBefore(box, wrap.querySelector('.card'));
+    }
+  } catch(e){}
+})();
 window.addEventListener('error', e => log('⚠︎ 오류: ' + e.message, 'e'));
 window.addEventListener('unhandledrejection', e => log('⚠︎ 처리 안 된 오류: ' + (e.reason && e.reason.message || e.reason), 'e'));
 
@@ -313,6 +339,7 @@ async function run(audio){
       '이 크기로는 한국어를 못 알아듣는다는 뜻입니다. <b>한 단계 큰 크기</b>로 다시 재보세요. ' +
       '<span style="color:var(--tx3)">속도 숫자는 그대로 유효합니다.</span>';
   }
+  markDone();
   $('#res').classList.add('on');
 }
 
