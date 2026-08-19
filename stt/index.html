@@ -94,20 +94,25 @@ input[type=file]{display:none}
 <div class="wrap">
 
 <h1>폰이 직접 받아쓸 수 있나</h1>
-<p class="lead">이 폰만으로 말을 글로 뽑아봅니다. <b>진행 기록이 아래에 계속 찍히니</b>, 멈추면 그 화면을 그대로 보여주세요.</p>
+<p class="lead">이 폰만으로 말을 글로 뽑아봅니다. <b>사파리로</b> 여세요(카톡 안에서 열면 튕깁니다). 진행 기록이 아래에 찍히니, 멈추면 그 화면을 보여주세요.</p>
 
 <div class="card">
   <h2>① 이 기기 진단</h2>
   <div class="diag" id="diag"><div><b>확인 중…</b><span></span></div></div>
+  <button class="btn sub" id="gpuBtn" style="margin-top:12px;width:100%" aria-pressed="false">
+    ⚡ GPU로 시도 — 지금은 꺼짐(안전)</button>
+  <p style="font-size:11.5px;color:var(--tx3);line-height:1.6;margin:8px 0 0">
+    기본은 <b>가장 안전한 방식</b>입니다. 먼저 이대로 한 번 성공시킨 다음, GPU를 켜서 더 빨라지는지 보세요.
+    GPU는 실험 단계라 <b>화면이 꺼지듯 튕길 수</b> 있습니다.</p>
 </div>
 
 <div class="card">
   <h2>② 크기 고르기</h2>
   <div class="models" id="models">
-    <button data-m="Xenova/whisper-tiny" data-mb="75" aria-pressed="false">
+    <button data-m="Xenova/whisper-tiny" data-mb="75" aria-pressed="true">
       <span class="n">작게 <em>~75MB</em></span>
       <span class="d">가장 빠름 · 처음 시험은 이걸로 시작하세요</span></button>
-    <button data-m="Xenova/whisper-base" data-mb="145" aria-pressed="true">
+    <button data-m="Xenova/whisper-base" data-mb="145" aria-pressed="false">
       <span class="n">보통 <em>~145MB</em></span>
       <span class="d">속도와 정확도의 가운데</span></button>
     <button data-m="Xenova/whisper-small" data-mb="480" aria-pressed="false">
@@ -209,12 +214,22 @@ const iOSVer = (ua.match(/OS (\d+)[_\d]* like Mac OS X/) || [])[1] || '?';
 })();
 
 /* ── 선택 ── */
-let MODEL = 'Xenova/whisper-base', MODEL_MB = 145, FILE = null;
+let MODEL = 'Xenova/whisper-tiny', MODEL_MB = 75, FILE = null;
+let USE_GPU = false;
 $('#models').addEventListener('click', e => {
   const b = e.target.closest('button'); if(!b) return;
   document.querySelectorAll('#models button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   MODEL = b.dataset.m; MODEL_MB = +b.dataset.mb;
   log('크기 선택: ' + MODEL);
+});
+$('#gpuBtn').addEventListener('click', function(){
+  USE_GPU = this.getAttribute('aria-pressed') !== 'true';
+  this.setAttribute('aria-pressed', String(USE_GPU));
+  this.textContent = USE_GPU ? '⚡ GPU로 시도 — 켜짐(실험)' : '⚡ GPU로 시도 — 지금은 꺼짐(안전)';
+  this.style.borderColor = USE_GPU ? 'var(--amber)' : '';
+  this.style.color = USE_GPU ? 'var(--amber)' : '';
+  pipeKey = '';
+  log('GPU 사용: ' + (USE_GPU ? '켬' : '끔'));
 });
 $('#way').addEventListener('click', e => {
   const b = e.target.closest('button'); if(!b) return;
@@ -229,19 +244,21 @@ $('#file').addEventListener('change', e => {
 });
 
 /* ── 엔진 ── */
-let pipe = null, pipeKey = '';
+let pipe = null, pipeKey = '', RAN_ON = 'wasm';
 async function getPipe(){
-  const key = MODEL + '|' + DEVICE;
+  const want = USE_GPU && DEVICE === 'webgpu' ? 'webgpu' : 'wasm';
+  const key = MODEL + '|' + want;
   if (pipeKey === key) { log('엔진 재사용'); return pipe; }
   setProg(10, `엔진 준비 중… <b>처음 한 번만</b> 약 ${MODEL_MB}MB`);
   log('라이브러리 불러오는 중…');
   const mod = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6/+esm');
   log('라이브러리 OK', 'k');
   mod.env.allowLocalModels = false;
+  log('계산 방식: ' + (want === 'webgpu' ? 'GPU (실험)' : 'CPU · 가벼운 q8'));
   let last = -1;
   pipe = await mod.pipeline('automatic-speech-recognition', MODEL, {
-    device: DEVICE,
-    dtype: DEVICE === 'webgpu' ? 'fp32' : 'q8',
+    device: want,
+    dtype: 'q8',
     progress_callback: p => {
       if (p.status === 'progress' && p.total) {
         const pct = Math.floor((p.loaded / p.total) * 100);
@@ -253,6 +270,7 @@ async function getPipe(){
     }
   });
   pipeKey = key;
+  RAN_ON = want;
   log('엔진 준비 완료', 'k');
   return pipe;
 }
@@ -291,7 +309,7 @@ async function run(audio){
   setProg(64, '받아쓰는 중… <b>화면을 끄지 마세요</b>');
   log('받아쓰기 시작 (' + audio.duration.toFixed(1) + '초 분량)');
   const t0 = performance.now();
-  const out = await p(audio.data, { language: 'korean', task: 'transcribe', chunk_length_s: 30, stride_length_s: 5 });
+  const out = await p(audio.data, { language: 'korean', task: 'transcribe', chunk_length_s: 20, stride_length_s: 3 });
   const sec = (performance.now() - t0) / 1000;
   setProg(100, '완료');
   log(`받아쓰기 완료: ${sec.toFixed(1)}초`, 'k');
@@ -301,7 +319,7 @@ async function run(audio){
   $('#sT').textContent = sec.toFixed(1) + '초';
   $('#sR').textContent = ratio.toFixed(2) + '배';
   $('#sD').textContent = audio.duration.toFixed(0) + '초';
-  $('#sE').textContent = DEVICE === 'webgpu' ? 'GPU' : 'CPU';
+  $('#sE').textContent = RAN_ON === 'webgpu' ? 'GPU' : 'CPU';
   $('#script').textContent = (out.text || '').trim() || '(말소리를 찾지 못했습니다)';
   $('#verdict').innerHTML =
     (ratio < PC * 0.8 ? `<b class="good">폰이 더 빠릅니다.</b> 노트북 0.61배 / 이 폰 <b>${ratio.toFixed(2)}배</b>.`
