@@ -109,36 +109,21 @@ input[type=file]{display:none}
 <div class="card">
   <h2>② 크기 고르기</h2>
   <div class="models" id="models">
-    <button data-m="Xenova/whisper-tiny" data-mb="75" aria-pressed="true">
+    <button data-m="Xenova/whisper-tiny" data-mb="75" aria-pressed="false">
       <span class="n">작게 <em>~75MB</em></span>
-      <span class="d">가장 빠름 · 처음 시험은 이걸로 시작하세요</span></button>
-    <button data-m="Xenova/whisper-base" data-mb="145" aria-pressed="false">
+      <span class="d">🚫 <b>한국어는 못 알아듣습니다</b> — 속도만 잴 때</span></button>
+    <button data-m="Xenova/whisper-base" data-mb="145" aria-pressed="true">
       <span class="n">보통 <em>~145MB</em></span>
-      <span class="d">속도와 정확도의 가운데</span></button>
+      <span class="d">한국어가 되기 시작하는 최소 크기 · <b>여기서 시작</b></span></button>
     <button data-m="Xenova/whisper-small" data-mb="480" aria-pressed="false">
       <span class="n">크게 <em>~480MB</em></span>
-      <span class="d">PC 앱과 같은 크기 · 폰이 버티는지가 관건</span></button>
+      <span class="d">PC 앱과 같은 크기 · <b>진짜 쓰려면 이게 필요</b>합니다</span></button>
   </div>
 </div>
 
 <div class="card">
-  <h2>③ 소리 넣기 — 두 가지 길</h2>
-  <div class="way" id="way">
-    <button data-w="mic" aria-pressed="true">🎙 마이크로 녹음<br><span style="font-size:11px;font-weight:400">가장 확실</span></button>
-    <button data-w="file" aria-pressed="false">🎬 파일 고르기<br><span style="font-size:11px;font-weight:400">영상·음성</span></button>
-  </div>
-
-  <div class="pane on" id="paneMic">
-    <div class="drop">
-      <div class="ic">🎙</div>
-      <p><b>15초 녹음해서 재봅니다</b>
-        <small>릴스를 <b>스피커로 틀고</b> 폰에 들려주거나, 그냥 아무 말이나 하셔도 됩니다<br>
-        속도를 재는 게 목적이라 내용은 상관없습니다</small></p>
-    </div>
-    <button class="btn rec" id="rec">🎙 15초 녹음 시작</button>
-  </div>
-
-  <div class="pane" id="paneFile">
+  <h2>③ 영상·소리 파일 넣기</h2>
+  <div id="paneFile">
     <label class="drop" for="file">
       <div class="ic">🎬</div>
       <p><b>여기를 눌러 파일 고르기</b>
@@ -214,7 +199,7 @@ const iOSVer = (ua.match(/OS (\d+)[_\d]* like Mac OS X/) || [])[1] || '?';
 })();
 
 /* ── 선택 ── */
-let MODEL = 'Xenova/whisper-tiny', MODEL_MB = 75, FILE = null;
+let MODEL = 'Xenova/whisper-base', MODEL_MB = 145, FILE = null;
 let USE_GPU = false;
 $('#models').addEventListener('click', e => {
   const b = e.target.closest('button'); if(!b) return;
@@ -230,12 +215,6 @@ $('#gpuBtn').addEventListener('click', function(){
   this.style.color = USE_GPU ? 'var(--amber)' : '';
   pipeKey = '';
   log('GPU 사용: ' + (USE_GPU ? '켬' : '끔'));
-});
-$('#way').addEventListener('click', e => {
-  const b = e.target.closest('button'); if(!b) return;
-  document.querySelectorAll('#way button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-  $('#paneMic').classList.toggle('on', b.dataset.w === 'mic');
-  $('#paneFile').classList.toggle('on', b.dataset.w === 'file');
 });
 $('#file').addEventListener('change', e => {
   FILE = e.target.files[0] || null;
@@ -309,7 +288,8 @@ async function run(audio){
   setProg(64, '받아쓰는 중… <b>화면을 끄지 마세요</b>');
   log('받아쓰기 시작 (' + audio.duration.toFixed(1) + '초 분량)');
   const t0 = performance.now();
-  const out = await p(audio.data, { language: 'korean', task: 'transcribe', chunk_length_s: 20, stride_length_s: 3 });
+  const out = await p(audio.data, { language: 'korean', task: 'transcribe', chunk_length_s: 20, stride_length_s: 3,
+      no_repeat_ngram_size: 3, temperature: 0, condition_on_previous_text: false });
   const sec = (performance.now() - t0) / 1000;
   setProg(100, '완료');
   log(`받아쓰기 완료: ${sec.toFixed(1)}초`, 'k');
@@ -326,6 +306,14 @@ async function run(audio){
      : ratio < PC * 1.3 ? `<b class="warn">비슷합니다.</b> 노트북 0.61배 / 이 폰 ${ratio.toFixed(2)}배.`
      : `<b class="bad">폰이 더 느립니다.</b> 노트북 0.61배 / 이 폰 ${ratio.toFixed(2)}배.`)
     + `<br><span style="color:var(--tx3)">아래 원고의 한국어가 멀쩡한지 꼭 확인하세요. <b>속도보다 이게 중요합니다.</b></span>`;
+  const txt = (out.text || '').trim();
+  const words = txt.split(/\s+/).filter(Boolean);
+  const uniq = new Set(words).size;
+  if (words.length > 8 && uniq <= Math.max(2, words.length * 0.15)) {
+    $('#verdict').innerHTML += '<br><br><b class="bad">⚠️ 같은 글자만 반복됐습니다.</b> ' +
+      '이 크기로는 한국어를 못 알아듣는다는 뜻입니다. <b>한 단계 큰 크기</b>로 다시 재보세요. ' +
+      '<span style="color:var(--tx3)">속도 숫자는 그대로 유효합니다.</span>';
+  }
   $('#res').classList.add('on');
 }
 
@@ -343,51 +331,6 @@ $('#go').addEventListener('click', async () => {
   finally { $('#go').disabled = false; }
 });
 
-/* ── 마이크 15초 ── */
-$('#rec').addEventListener('click', async () => {
-  const btn = $('#rec'); btn.disabled = true; T0 = Date.now(); logBox.innerHTML = '';
-  let stream;
-  try {
-    log('마이크 권한 요청…');
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    log('마이크 OK · 녹음 시작', 'k');
-    const AC = window.AudioContext || window.webkitAudioContext;
-    const ctx = new AC();
-    const src = ctx.createMediaStreamSource(stream);
-    const chunks = []; const SR = ctx.sampleRate;
-    const node = ctx.createScriptProcessor(4096, 1, 1);
-    src.connect(node); node.connect(ctx.destination);
-    node.onaudioprocess = e => chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
-
-    for (let i = 15; i > 0; i--) {
-      btn.textContent = `🔴 녹음 중… ${i}초`;
-      await new Promise(r => setTimeout(r, 1000));
-    }
-    node.disconnect(); src.disconnect(); stream.getTracks().forEach(t => t.stop());
-    btn.textContent = '🎙 15초 녹음 시작';
-
-    let len = 0; chunks.forEach(c => len += c.length);
-    const raw = new Float32Array(len); let off = 0;
-    chunks.forEach(c => { raw.set(c, off); off += c.length; });
-    await ctx.close();
-    log(`녹음 완료: ${(len / SR).toFixed(1)}초 (${SR}Hz) · 16kHz로 바꾸는 중`);
-
-    // 16kHz 리샘플
-    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    const tmpCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const b = tmpCtx.createBuffer(1, len, SR); b.copyToChannel(raw, 0); await tmpCtx.close();
-    const o = new OAC(1, Math.ceil(len / SR * 16000), 16000);
-    const s2 = o.createBufferSource(); s2.buffer = b; s2.connect(o.destination); s2.start();
-    const rendered = await o.startRendering();
-    log('변환 완료', 'k');
-
-    await run({ data: rendered.getChannelData(0), duration: len / SR });
-  } catch(e){
-    if (stream) stream.getTracks().forEach(t => t.stop());
-    btn.textContent = '🎙 15초 녹음 시작';
-    fail(e);
-  } finally { btn.disabled = false; }
-});
 </script>
 </body>
 </html>
