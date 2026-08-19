@@ -57,7 +57,6 @@ input[type=file]{display:none}
 .btn:active{transform:scale(.96)}
 .btn[disabled]{opacity:.4}
 .btn.sub{background:#151922;color:var(--tx2);border:1px solid var(--line2);font-weight:600}
-.btn.rec{background:var(--rose);color:#07090C}
 
 .prog{margin-top:14px;display:none}
 .prog.on{display:block}
@@ -128,7 +127,7 @@ input[type=file]{display:none}
       <div class="ic">🎬</div>
       <p><b>여기를 눌러 파일 고르기</b>
         <small>⚠️ 화면 녹화(mov)는 아이폰에서 소리를 못 꺼내는 경우가 있습니다<br>
-        안 되면 <b>음성 메모(m4a)</b>나 위의 마이크 녹음을 쓰세요</small></p>
+        안 되면 <b>음성 메모(m4a)</b>로 바꿔서 넣어보세요</small></p>
     </label>
     <input type="file" id="file" accept="video/*,audio/*">
     <button class="btn" id="go" disabled>받아쓰기 시작</button>
@@ -271,7 +270,7 @@ async function toAudio(file){
   } catch(e){
     ctx.close();
     throw new Error('이 파일에서 소리를 꺼내지 못했습니다 — ' + e.message +
-      '. 화면 녹화(mov)는 아이폰이 못 여는 경우가 있습니다. 위의 «마이크로 녹음»으로 재보세요.');
+      '. 화면 녹화(mov)는 아이폰이 못 여는 경우가 있습니다 — «음성 메모»로 녹음한 m4a 파일로 재보세요.');
   }
   ctx.close();
   log(`소리 확보: ${decoded.duration.toFixed(1)}초`, 'k');
