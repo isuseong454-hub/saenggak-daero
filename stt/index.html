@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>폰 받아쓰기 실측</title>
+<style>
+:root{
+  --bg:#07090C; --bg2:#101319; --line:#20242D; --line2:#2C313B;
+  --tx:#EDEFF3; --tx2:#98A0AD; --tx3:#646B78;
+  --lime:#C8FF4D; --cyan:#5FD3F3; --rose:#FF7A8A; --amber:#F5B94A;
+  --e-out:cubic-bezier(.23,1,.32,1); --e-press:cubic-bezier(.2,0,0,1);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+body{padding:max(20px,env(safe-area-inset-top)) 16px 60px}
+.wrap{max-width:640px;margin:0 auto}
+
+h1{font-size:24px;line-height:1.15;letter-spacing:-.02em;margin:0 0 6px;text-wrap:balance}
+.lead{color:var(--tx2);font-size:14px;line-height:1.6;margin:0 0 18px;text-wrap:pretty}
+
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.card h2{font-size:13px;letter-spacing:.02em;color:var(--tx3);margin:0 0 12px;font-weight:700}
+
+/* 기기 진단 */
+.diag div{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 0;
+  border-bottom:1px solid var(--line)}
+.diag div:last-child{border-bottom:0}
+.diag b{font-weight:600;color:var(--tx2)}
+.diag span{font-family:ui-monospace,Menlo,monospace;font-size:12px;text-align:right}
+.good{color:var(--lime)} .bad{color:var(--rose)} .warn{color:var(--amber)}
+
+/* 모델 선택 */
+.models{display:flex;flex-direction:column;gap:8px}
+.models button{width:100%;text-align:left;font-family:inherit;cursor:pointer;
+  background:#151922;border:1px solid var(--line2);color:var(--tx);border-radius:12px;padding:12px 14px;
+  transition:transform .12s var(--e-press),border-color .18s ease,background .18s ease}
+.models button:active{transform:scale(.96)}
+.models button[aria-pressed="true"]{border-color:var(--lime);background:rgba(200,255,77,.08)}
+.models .n{font-size:14px;font-weight:650;display:flex;justify-content:space-between;gap:8px}
+.models .n em{font-style:normal;font-size:11.5px;color:var(--tx3);font-family:ui-monospace,monospace}
+.models .d{font-size:12px;color:var(--tx3);margin-top:3px;line-height:1.5}
+
+/* 파일 */
+.drop{border:1px dashed var(--line2);border-radius:14px;padding:22px 14px;text-align:center;
+  background:#0C0F14;transition:border-color .2s ease}
+.drop .ic{font-size:26px;margin-bottom:8px}
+.drop p{margin:0;font-size:13px;color:var(--tx2);line-height:1.6}
+.drop small{display:block;margin-top:6px;font-size:11.5px;color:var(--tx3)}
+input[type=file]{display:none}
+.btn{display:inline-block;margin-top:12px;font-family:inherit;font-size:14px;font-weight:700;
+  padding:12px 22px;border-radius:12px;background:var(--lime);color:#07090C;border:0;cursor:pointer;
+  transition:transform .12s var(--e-press),opacity .2s ease}
+.btn:active{transform:scale(.96)}
+.btn[disabled]{opacity:.4;cursor:default}
+.btn.sub{background:#151922;color:var(--tx2);border:1px solid var(--line2);font-weight:600}
+
+/* 진행 */
+.prog{margin-top:14px;display:none}
+.prog.on{display:block}
+.bar{height:6px;background:#151922;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--lime));
+  border-radius:99px;transition:width .25s var(--e-out)}
+.plabel{font-size:12px;color:var(--tx2);margin-top:8px;line-height:1.5;font-variant-numeric:tabular-nums}
+
+/* 결과 */
+.res{display:none}
+.res.on{display:block;animation:in .22s var(--e-out) 1 both}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.score{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.sc{background:#0C0F14;border:1px solid var(--line);border-radius:12px;padding:12px}
+.sc b{display:block;font-size:11px;color:var(--tx3);font-weight:600;margin-bottom:5px}
+.sc span{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.verdict{font-size:13px;line-height:1.65;padding:12px 14px;border-radius:12px;
+  background:#0C0F14;border:1px solid var(--line);margin-bottom:12px}
+.script{white-space:pre-wrap;font-size:14px;line-height:1.7;color:var(--tx);
+  background:#0C0F14;border:1px solid var(--line);border-radius:12px;padding:14px;
+  max-height:340px;overflow:auto;-webkit-overflow-scrolling:touch}
+.err{color:#FFB3BC;font-size:13px;line-height:1.6;background:rgba(255,122,138,.08);
+  border:1px solid rgba(255,122,138,.3);border-radius:12px;padding:12px 14px;margin-top:12px;display:none}
+.err.on{display:block}
+.foot{font-size:11.5px;color:var(--tx3);line-height:1.65;margin-top:18px;text-wrap:pretty}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>폰이 직접 받아쓸 수 있나</h1>
+<p class="lead">컴퓨터 없이 <b>이 폰만으로</b> 영상의 말을 글로 뽑아봅니다.
+얼마나 걸리는지·한국어가 버티는지를 재는 <b>실측 페이지</b>입니다.</p>
+
+<div class="card">
+  <h2>① 이 기기 진단</h2>
+  <div class="diag" id="diag">
+    <div><b>확인 중…</b><span></span></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>② 크기 고르기 — 클수록 정확하고 느립니다</h2>
+  <div class="models" id="models">
+    <button data-m="Xenova/whisper-tiny" data-mb="75" aria-pressed="false">
+      <span class="n">작게 <em>~75MB</em></span>
+      <span class="d">가장 빠름. 한국어는 오타가 꽤 납니다 — 속도 감만 볼 때</span>
+    </button>
+    <button data-m="Xenova/whisper-base" data-mb="145" aria-pressed="true">
+      <span class="n">보통 <em>~145MB</em></span>
+      <span class="d">권장 시작점. 속도와 정확도의 가운데</span>
+    </button>
+    <button data-m="Xenova/whisper-small" data-mb="480" aria-pressed="false">
+      <span class="n">크게 <em>~480MB</em></span>
+      <span class="d">PC 앱이 쓰는 것과 같은 크기. 폰이 버티는지가 관건</span>
+    </button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>③ 영상이나 소리 파일 넣기</h2>
+  <label class="drop" for="file">
+    <div class="ic">🎬</div>
+    <p><b>여기를 눌러 파일 고르기</b>
+      <small>폰에 저장해 둔 릴스·숏츠 영상 또는 음성 파일<br>먼저 <b>30초 안팎 짧은 것</b>으로 재보세요</small></p>
+  </label>
+  <input type="file" id="file" accept="video/*,audio/*">
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" id="go" disabled>받아쓰기 시작</button>
+    <button class="btn sub" id="again" style="display:none">다른 파일로</button>
+  </div>
+
+  <div class="prog" id="prog">
+    <div class="bar"><i id="barI"></i></div>
+    <div class="plabel" id="plabel">준비 중…</div>
+  </div>
+  <div class="err" id="err"></div>
+</div>
+
+<div class="card res" id="res">
+  <h2>④ 결과</h2>
+  <div class="score">
+    <div class="sc"><b>받아쓰기에 걸린 시간</b><span id="sT">–</span></div>
+    <div class="sc"><b>영상 길이 대비</b><span id="sR">–</span></div>
+    <div class="sc"><b>영상 길이</b><span id="sD">–</span></div>
+    <div class="sc"><b>사용한 엔진</b><span id="sE">–</span></div>
+  </div>
+  <div class="verdict" id="verdict"></div>
+  <div class="script" id="script"></div>
+  <button class="btn sub" id="copy" style="margin-top:12px">📋 원고 복사</button>
+</div>
+
+<p class="foot">※ 모델은 <b>처음 한 번만</b> 내려받고 그다음부터는 폰에 저장됩니다(두 번째부터 훨씬 빠름).<br>
+※ 소리는 <b>이 폰 밖으로 나가지 않습니다.</b> 서버로 아무것도 보내지 않고 폰 안에서만 계산합니다.</p>
+
+</div>
+
+<script type="module">
+const $ = s => document.querySelector(s);
+const diag = $('#diag'), prog = $('#prog'), barI = $('#barI'), plabel = $('#plabel'), errBox = $('#err');
+
+let MODEL = 'Xenova/whisper-base', MODEL_MB = 145, FILE = null, DEVICE = 'wasm', pipe = null, pipeKey = '';
+
+/* ── ① 기기 진단 ── */
+const hasGPU = 'gpu' in navigator;
+const secure = window.isSecureContext;
+const ua = navigator.userAgent;
+const iOSVer = (ua.match(/OS (\d+)[_\d]* like Mac OS X/) || [])[1] || null;
+const isiOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+async function runDiag(){
+  let gpuOk = false, gpuName = '없음';
+  if (hasGPU) {
+    try {
+      const ad = await navigator.gpu.requestAdapter();
+      if (ad) { gpuOk = true; gpuName = (ad.info && ad.info.description) || '사용 가능'; }
+    } catch(e){}
+  }
+  DEVICE = gpuOk ? 'webgpu' : 'wasm';
+  const rows = [
+    ['기기', isiOS ? ('아이폰/아이패드' + (iOSVer ? ' · iOS ' + iOSVer : '')) : '아이폰 아님', isiOS ? 'good' : 'warn'],
+    ['안전한 주소(https)', secure ? '예' : '아니오 — GPU 못 씀', secure ? 'good' : 'bad'],
+    ['폰 GPU(WebGPU)', gpuOk ? '켜짐 — 빠른 길' : '꺼짐 — 느린 길로 진행', gpuOk ? 'good' : 'warn'],
+    ['계산 방식', gpuOk ? 'GPU 가속' : 'CPU(WASM)', gpuOk ? 'good' : 'warn'],
+  ];
+  diag.innerHTML = rows.map(r => `<div><b>${r[0]}</b><span class="${r[2]}">${r[1]}</span></div>`).join('');
+  if (!gpuOk && isiOS) {
+    show(errBox, 'GPU가 꺼져 있습니다. iOS 26 미만이거나 사파리 설정에서 꺼진 상태일 수 있습니다. ' +
+      '이대로도 측정은 되지만 <b>훨씬 느립니다</b> — 이 결과를 「폰의 실력」으로 보면 안 됩니다.');
+  }
+}
+function show(el, html){ el.innerHTML = html; el.classList.add('on'); }
+function hide(el){ el.classList.remove('on'); }
+runDiag();
+
+/* ── ② 모델 선택 ── */
+$('#models').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#models button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  MODEL = b.dataset.m; MODEL_MB = +b.dataset.mb;
+});
+
+/* ── ③ 파일 ── */
+$('#file').addEventListener('change', e => {
+  FILE = e.target.files[0] || null;
+  $('#go').disabled = !FILE;
+  if (FILE) {
+    document.querySelector('.drop p').innerHTML =
+      `<b>${FILE.name}</b><small>${(FILE.size/1048576).toFixed(1)}MB — 아래 «받아쓰기 시작»을 누르세요</small>`;
+  }
+});
+
+function setProg(p, label){
+  prog.classList.add('on');
+  barI.style.width = Math.max(0, Math.min(100, p)) + '%';
+  plabel.innerHTML = label;
+}
+
+/* 파일 → 16kHz 모노 Float32 */
+async function toAudio(file){
+  const buf = await file.arrayBuffer();
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AC();
+  let decoded;
+  try { decoded = await ctx.decodeAudioData(buf); }
+  catch(e){ ctx.close(); throw new Error('이 파일의 소리를 읽지 못했습니다. mp4·m4a·mp3·wav 로 다시 시도해 주세요.'); }
+  ctx.close();
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const off = new OAC(1, Math.ceil(decoded.duration * 16000), 16000);
+  const src = off.createBufferSource(); src.buffer = decoded; src.connect(off.destination); src.start();
+  const out = await off.startRendering();
+  return { data: out.getChannelData(0), duration: decoded.duration };
+}
+
+$('#go').addEventListener('click', async () => {
+  if (!FILE) return;
+  hide(errBox); $('#res').classList.remove('on'); $('#go').disabled = true;
+  try {
+    setProg(4, '소리를 꺼내는 중…');
+    const audio = await toAudio(FILE);
+
+    const key = MODEL + '|' + DEVICE;
+    if (pipeKey !== key) {
+      setProg(8, `엔진을 준비하는 중… <b>처음 한 번만</b> 약 ${MODEL_MB}MB를 받습니다`);
+      const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6');
+      env.allowLocalModels = false;
+      pipe = await pipeline('automatic-speech-recognition', MODEL, {
+        device: DEVICE,
+        dtype: DEVICE === 'webgpu' ? 'fp32' : 'q8',
+        progress_callback: p => {
+          if (p.status === 'progress' && p.total) {
+            const pct = (p.loaded / p.total) * 100;
+            setProg(8 + pct * 0.5, `모델 내려받는 중 <b>${pct.toFixed(0)}%</b> · ${(p.loaded/1048576).toFixed(0)}MB`);
+          }
+        }
+      });
+      pipeKey = key;
+    }
+
+    setProg(62, '받아쓰는 중… <b>화면을 끄지 마세요</b>');
+    const t0 = performance.now();
+    const out = await pipe(audio.data, { language: 'korean', task: 'transcribe', chunk_length_s: 30, stride_length_s: 5 });
+    const sec = (performance.now() - t0) / 1000;
+
+    setProg(100, '완료');
+    setTimeout(() => prog.classList.remove('on'), 600);
+
+    const ratio = sec / audio.duration;
+    $('#sT').textContent = sec.toFixed(1) + '초';
+    $('#sR').textContent = ratio.toFixed(2) + '배';
+    $('#sD').textContent = audio.duration.toFixed(0) + '초';
+    $('#sE').textContent = DEVICE === 'webgpu' ? 'GPU' : 'CPU';
+    $('#script').textContent = (out.text || '').trim() || '(말소리를 찾지 못했습니다)';
+
+    const pcRef = 0.61;   // 사장님 노트북 실측: 영상 길이의 0.61배
+    let msg;
+    if (ratio < pcRef * 0.8)
+      msg = `<b class="good">폰이 더 빠릅니다.</b> 사장님 노트북은 영상 길이의 <b>0.61배</b>가 걸렸는데, 이 폰은 <b>${ratio.toFixed(2)}배</b>입니다. 수강생 폰으로 돌리는 쪽이 낫습니다.`;
+    else if (ratio < pcRef * 1.3)
+      msg = `<b class="warn">비슷합니다.</b> 노트북 0.61배 / 이 폰 ${ratio.toFixed(2)}배. 속도로는 큰 이득이 없으니 <b>설치가 필요 없다는 점</b>만 이득입니다.`;
+    else
+      msg = `<b class="bad">폰이 더 느립니다.</b> 노트북 0.61배 / 이 폰 ${ratio.toFixed(2)}배. ${DEVICE === 'wasm' ? 'GPU가 꺼져 있어서일 수 있습니다 — GPU를 켜고 다시 재보세요.' : '이 길은 접는 게 맞습니다.'}`;
+    $('#verdict').innerHTML = msg + `<br><span style="color:var(--tx3)">한국어가 제대로 나왔는지는 아래 원고를 눈으로 확인하세요. <b>속도보다 이게 중요합니다.</b></span>`;
+
+    $('#res').classList.add('on');
+    $('#again').style.display = 'inline-block';
+  } catch (e) {
+    prog.classList.remove('on');
+    show(errBox, '<b>실패했습니다.</b><br>' + (e && e.message ? e.message : e) +
+      '<br><span style="color:var(--tx3)">이 메시지를 그대로 알려주시면 원인을 잡겠습니다.</span>');
+  } finally {
+    $('#go').disabled = !FILE;
+  }
+});
+
+$('#again').addEventListener('click', () => $('#file').click());
+$('#copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('#script').textContent); $('#copy').textContent = '✓ 복사했습니다'; }
+  catch(e){ $('#copy').textContent = '복사 실패 — 길게 눌러 선택하세요'; }
+  setTimeout(() => $('#copy').textContent = '📋 원고 복사', 1800);
+});
+</script>
+</body>
+</html>
