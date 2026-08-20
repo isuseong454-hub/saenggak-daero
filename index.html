@@ -23,6 +23,8 @@
   --r-lg:22px; --r-md:16px;
   --spring:cubic-bezier(.32,1.4,.36,1);
   --ease:cubic-bezier(.22,.61,.36,1);
+  --e-out:cubic-bezier(.23,1,.32,1);      /* 나타남·사라짐 기본 */
+  --e-press:cubic-bezier(.2,0,0,1);       /* 눌림 — 튕김 없음 */
   --dock-h:74px; --cap-h:66px;
   /* 🟢 브랜드 색 — 테마가 바뀌어도 이건 고정.
      아이콘·로그인 창의 얼굴이라 앱 안쪽 톤과 따로 간다. */
@@ -43,6 +45,8 @@ html[data-theme="sea"]{ --bg0:#0A1016; --bg1:#101820; --ac1:#7EC8F5; --ac2:#66FF
 
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}   /* 눕혀도 글자가 안 커짐 */
+/* 🚨 헌법 — 상시 반복 모션 금지(발열·눈 피로). 로딩 표시만 예외 */
+*{animation-iteration-count:1 !important}
 body{background:var(--bg0);color:var(--tx1);
   font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
   min-height:100dvh;overscroll-behavior-y:none;-webkit-font-smoothing:antialiased;transition:background .35s}
@@ -52,8 +56,8 @@ svg{stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-l
 
 /* 배경 광원 — 발열 헌법 */
 .orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.26;pointer-events:none;z-index:0}
-.orb1{width:44vmax;height:44vmax;left:-14vmax;top:-16vmax;background:radial-gradient(circle,var(--ac1),transparent 70%);animation:drift 28s var(--ease) infinite alternate}
-.orb2{width:36vmax;height:36vmax;right:-12vmax;bottom:-10vmax;background:radial-gradient(circle,var(--ac2),transparent 70%);animation:drift 34s var(--ease) infinite alternate-reverse}
+.orb1{width:44vmax;height:44vmax;left:-14vmax;top:-16vmax;background:radial-gradient(circle,var(--ac1),transparent 70%);animation:drift 28s var(--ease) 1 alternate forwards}
+.orb2{width:36vmax;height:36vmax;right:-12vmax;bottom:-10vmax;background:radial-gradient(circle,var(--ac2),transparent 70%);animation:drift 34s var(--ease) 1 alternate-reverse forwards}
 @keyframes drift{to{transform:translate(6vmax,4vmax) scale(1.08)}}
 body.heat-off .orb{animation-play-state:paused}
 @media (prefers-reduced-motion:reduce){.orb{animation:none}}
@@ -100,7 +104,7 @@ body.heat-off .orb{animation-play-state:paused}
   color:#101408;background:linear-gradient(135deg,var(--ac1),var(--ac2));transition:transform .18s var(--spring)}
 .lock-go:active{transform:scale(.95)}
 .lock-skip{display:block;width:100%;margin-top:14px;font-size:12.5px;color:var(--tx3);padding:6px}
-.pin.code{letter-spacing:.12em;font-size:17px}
+.pin.code{letter-spacing:.02em;font-size:17px;text-transform:none}
 
 /* 비밀번호 바꾸기 (임시 비번으로 들어오면 강제) */
 .pw-ov{position:fixed;inset:0;z-index:125;display:none;align-items:center;justify-content:center;
@@ -136,7 +140,7 @@ body.typing #scr-s1{padding-bottom:calc(var(--cap-h) + var(--kb,0px) + 6px)}
 .scr.on{display:block}
 @keyframes scrIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .hero{margin:8px 2px 14px}
-.hero h1{font-size:21px;font-weight:900;letter-spacing:-.03em}
+.hero h1{font-size:21px;font-weight:900;letter-spacing:-.03em;line-height:1.15;text-wrap:balance}
 .hero .hi{font-size:12.5px;color:var(--tx2);margin-top:3px}
 .hi-line{font-size:12.5px;color:var(--tx2);margin:6px 2px 14px}
 .hi-line b{color:var(--ac3);font-weight:800}
@@ -152,7 +156,7 @@ body.typing #scr-s1{padding-bottom:calc(var(--cap-h) + var(--kb,0px) + 6px)}
 .kbar.todo{background:var(--k-todo);opacity:1}
 .kbar.none{background:repeating-linear-gradient(180deg,var(--tx3) 0 3px,transparent 3px 7px)}
 .nt{flex:1;min-width:0}
-.nt p{font-size:14.5px;line-height:1.5;word-break:break-word}
+.nt p{font-size:14.5px;line-height:1.55;word-break:break-word;text-wrap:pretty}
 .nt small{font-size:11px;color:var(--tx3)}
 .nt small i{font-style:normal;font-weight:800}
 .nt small i.memo{color:var(--k-memo)} .nt small i.idea{color:var(--k-idea)} .nt small i.todo{color:var(--k-todo)}
@@ -369,7 +373,9 @@ body.hasphoto .strip{display:flex}
 .dock{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom));
   z-index:50;display:flex;gap:2px;padding:7px;border-radius:26px;
   background:color-mix(in srgb,var(--bg1) 78%,transparent);border:1px solid var(--line);border-top-color:var(--glass-hi);
-  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);box-shadow:0 18px 50px rgba(0,0,0,.55);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  box-shadow:0 1px 1px rgba(0,0,0,.28),0 6px 14px rgba(0,0,0,.30),0 18px 44px rgba(0,0,0,.34),
+             inset 0 1px 0 rgba(255,255,255,.06);
   transition:transform .3s var(--ease),opacity .25s}
 body.typing .dock,body.picking .dock{transform:translateX(-50%) translateY(130%);opacity:0;pointer-events:none}
 .dock button{width:60px;padding:9px 0 7px;border-radius:19px;display:flex;flex-direction:column;align-items:center;gap:4px;
@@ -411,8 +417,8 @@ body.typing .dock,body.picking .dock{transform:translateX(-50%) translateY(130%)
 .sheet,.lock,.pw-ov,.pv-side,.strip,.cal-grid{overscroll-behavior:contain}
 /* 마감① 누를 때 손끝 반응 — 개별 규칙이 있는 곳은 그쪽이 이긴다 */
 button:not(:disabled),a.set-row,a.lock-adm{
-  transition:transform .2s cubic-bezier(.34,1.56,.64,1),background-color .15s ease,border-color .15s ease,color .15s ease}
-button:not(:disabled):active{transform:scale(.97)}
+  transition:transform 120ms var(--e-press),background-color .15s ease,border-color .15s ease,color .15s ease}
+button:not(:disabled):active{transform:scale(.96)}   /* 표준 — 0.8은 «푹 꺼짐»=싸구려 */
 .dock,.toast,.tgl i,.stamp{transition:none}          /* translate 쓰는 것들은 제외 */
 .dock button:not(:disabled):active{transform:scale(.9)}
 /* 마감③ 스크롤이 닿으면 상단바가 «떠오른다» (다크라 그림자+윗선) */
@@ -452,7 +458,8 @@ body.scrolled .tb{box-shadow:0 8px 22px rgba(0,0,0,.42);border-bottom-color:var(
     <div class="lock-mark"><svg viewBox="0 0 24 24"><use href="#pen"/></svg></div>
     <div class="lock-tt" id="lock-tt">생각대로</div>
     <div class="lock-sub" id="lock-sub">코드와 비밀번호로 들어오세요</div>
-    <input class="pin code" id="lg-code" placeholder="코드" autocomplete="off" autocapitalize="characters">
+    <input class="pin code" id="lg-code" placeholder="코드" autocomplete="username"
+           autocapitalize="none" autocorrect="off" spellcheck="false">
     <input class="pin" id="lg-pin" type="password" placeholder="비밀번호" autocomplete="off">
     <div class="lock-err" id="lock-err"></div>
     <div class="lock-auto" id="lock-auto-row">
