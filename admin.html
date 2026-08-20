@@ -19,6 +19,9 @@
   --brand-bg:#121410; --brand1:#9BC97E; --brand2:#D9E8A8; --brand-tx:#EFF2E8; --brand-sub:#9AA48E;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*{animation-iteration-count:1 !important}   /* 🚨 헌법 — 상시 반복 모션 금지 */
+@media (prefers-reduced-motion:reduce){*{animation:none !important}}
 body{background:var(--bg0);color:var(--tx1);min-height:100dvh;overscroll-behavior-y:none;
   font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
   -webkit-font-smoothing:antialiased}
@@ -111,7 +114,7 @@ svg{stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-l
 @keyframes pop{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:none}}
 .cc{position:relative;border-radius:22px;padding:1.5px;overflow:hidden;
   background:linear-gradient(135deg,var(--ac1),var(--ac2),var(--ac3),var(--ac1));background-size:300% 300%;
-  animation:ccglow 7s linear infinite}
+  animation:ccglow 7s linear 1}   /* 헌법 — 무한 반복 금지 */
 @keyframes ccglow{to{background-position:300% 0}}
 .cc-in{border-radius:21px;background:linear-gradient(160deg,#141024,#0A0812);padding:26px 24px 22px;position:relative;overflow:hidden}
 .cc-in::after{content:'';position:absolute;right:-40px;top:-60px;width:180px;height:180px;border-radius:50%;
@@ -153,6 +156,17 @@ svg{stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-l
   padding:11px 18px;font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;
   transition:opacity .25s,transform .3s var(--spring);backdrop-filter:blur(12px)}
 .toast.on{opacity:1;transform:translateX(-50%)}
+/* 마감 — 눌림 표준 · 그림자 3겹 · 글씨 */
+button:not(:disabled),a{transition:transform 120ms cubic-bezier(.2,0,0,1),background-color .15s ease,border-color .15s ease,color .15s ease}
+button:not(:disabled):active{transform:scale(.96)}
+.toast{transition:opacity .25s,transform .3s cubic-bezier(.23,1,.32,1)}
+.card{box-shadow:0 1px 1px rgba(0,0,0,.26),0 4px 10px rgba(0,0,0,.22),0 14px 32px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.05)}
+.lg-tt{line-height:1.15;text-wrap:balance}
+.card p,.sy-p{text-wrap:pretty}
+@media (hover:hover) and (pointer:fine){
+  .tabs button:hover{color:var(--tx1)}
+  .rbtn:hover{border-color:var(--glass-hi)}
+}
 </style>
 </head>
 <body>
@@ -166,7 +180,8 @@ svg{stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-l
     <div class="lg-mark"><svg viewBox="0 0 24 24"><path d="M12 3 4 6.5v5c0 4.6 3.2 8.6 8 9.5 4.8-.9 8-4.9 8-9.5v-5z"/><path d="m9 12 2 2 4-4"/></svg></div>
     <div class="lg-tt" id="g-tt">관리자</div>
     <div class="lg-sub" id="g-sub">생각대로 · 코드 발급과 관리</div>
-    <input class="fld" id="g-id" placeholder="관리자 아이디" autocomplete="off" autocapitalize="characters">
+    <input class="fld" id="g-id" placeholder="관리자 아이디" autocomplete="username"
+           autocapitalize="none" autocorrect="off" spellcheck="false">
     <input class="fld" id="g-pin" type="password" placeholder="비밀번호" autocomplete="off">
     <div class="err" id="g-err"></div>
     <button class="btn" id="g-go">들어가기</button>
@@ -225,7 +240,8 @@ svg{stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-l
       <label class="lbl">이름 (누구에게 주는지)</label>
       <input class="fld" id="n-name" placeholder="예) 이수성" autocomplete="off">
       <label class="lbl">코드 — 비우면 자동으로 만들어 줍니다</label>
-      <input class="fld" id="n-code" placeholder="영문·숫자 4~24자" autocomplete="off" autocapitalize="characters">
+      <input class="fld" id="n-code" placeholder="영문·숫자 4~24자" autocomplete="off"
+             autocapitalize="none" autocorrect="off" spellcheck="false">
       <label class="lbl">기간</label>
       <div class="seg" id="n-days">
         <button data-d="30">1개월</button><button data-d="90">3개월</button>
