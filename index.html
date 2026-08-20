@@ -79,6 +79,16 @@ body.heat-off .orb{animation-play-state:paused}
 .lock .pin{border-color:rgba(220,240,200,.12)}
 .lock .lock-go{color:#101408;background:linear-gradient(135deg,var(--brand1),var(--brand2))}
 .lock-tip{margin-top:16px;font-size:11.5px;color:var(--brand-sub);opacity:.75;line-height:1.6}
+/* 처음이신가요 — 접혀 있다가 펼쳐지는 안내 */
+.lock-first{display:block;width:100%;margin-top:14px;padding:8px;font-size:12.5px;font-weight:700;
+  color:var(--brand-sub);text-decoration:underline;text-underline-offset:3px}
+.lock-help{display:none;text-align:left;margin-top:12px}
+.lock-help.on{display:block;animation:helpIn .3s var(--e-out)}
+@keyframes helpIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.lock-help p{font-size:12.5px;line-height:1.75;color:var(--brand-sub);
+  padding:11px 13px;border-radius:12px;border:1px solid rgba(220,240,200,.10);margin-bottom:7px}
+.lock-help p:last-child{margin-bottom:0}
+.lock-help b{color:var(--brand-tx)}
 .lock-mark{width:76px;height:76px;border-radius:24px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;
   background:linear-gradient(135deg,var(--brand1),var(--brand2));color:#101408;
   box-shadow:0 14px 38px color-mix(in srgb,var(--brand1) 42%,transparent)}
@@ -108,8 +118,15 @@ body.heat-off .orb{animation-play-state:paused}
 
 /* 비밀번호 바꾸기 (임시 비번으로 들어오면 강제) */
 .pw-ov{position:fixed;inset:0;z-index:125;display:none;align-items:center;justify-content:center;
-  background:color-mix(in srgb,var(--bg0) 92%,transparent);padding:24px}
+  background:radial-gradient(120% 90% at 50% 0%,color-mix(in srgb,var(--brand1) 13%,var(--brand-bg)),var(--brand-bg) 62%);
+  padding:24px;color:var(--brand-tx)}
 .pw-ov.on{display:flex}
+.pw-ov .lock-sub{color:var(--brand-sub)}
+.pw-ov .lock-go{color:#101408;background:linear-gradient(135deg,var(--brand1),var(--brand2))}
+.pw-lbl{text-align:left;font-size:11.5px;font-weight:800;color:var(--brand-sub);margin:12px 2px 5px}
+.pw-match{min-height:17px;font-size:12px;font-weight:700;margin-top:8px}
+.pw-match.ok{color:var(--brand1)}
+.pw-match.no{color:var(--stamp)}
 
 /* 상단바 */
 .tb{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
@@ -467,6 +484,14 @@ body.scrolled .tb{box-shadow:0 8px 22px rgba(0,0,0,.42);border-bottom-color:var(
       <button class="tgl" id="tgl-auto"><i></i></button>
     </div>
     <button class="lock-go" id="lock-go">들어가기</button>
+    <button class="lock-first" id="lock-first">처음이신가요?</button>
+    <div class="lock-help" id="lock-help">
+      <p><b>코드를 받으셨다면</b><br>받으신 <b>코드</b>와 <b>함께 온 첫 비밀번호</b>를 그대로 넣으세요.
+        들어가면 <b>내 비밀번호를 정하는 화면</b>이 바로 뜹니다.</p>
+      <p><b>코드가 없다면</b><br>관리자에게 코드를 요청하세요.
+        오른쪽 위 <b>관리자</b>에서 직접 만들 수도 있습니다.</p>
+      <p><b>폰에 앱처럼 두려면</b><br>사파리에서 연 뒤 <b>공유 → 홈 화면에 추가</b>.</p>
+    </div>
   </div>
 </div>
 
@@ -476,8 +501,11 @@ body.scrolled .tb{box-shadow:0 8px 22px rgba(0,0,0,.42);border-bottom-color:var(
     <div class="lock-mark">🔑</div>
     <div class="lock-tt" id="pw-tt">비밀번호를 바꿔주세요</div>
     <div class="lock-sub" id="pw-sub">임시 비밀번호로 들어왔습니다 — 내 것으로 바꿔야 시작됩니다</div>
-    <input class="pin" id="pw-1" type="password" placeholder="새 비밀번호 (4자리 이상)" autocomplete="new-password">
-    <input class="pin" id="pw-2" type="password" placeholder="한 번 더" autocomplete="new-password" style="margin-top:9px">
+    <div class="pw-lbl">쓸 비밀번호</div>
+    <input class="pin" id="pw-1" type="password" placeholder="4자리 이상" inputmode="numeric" autocomplete="new-password">
+    <div class="pw-lbl">한 번 더 (확인)</div>
+    <input class="pin" id="pw-2" type="password" placeholder="같은 번호를 한 번 더" inputmode="numeric" autocomplete="new-password">
+    <div class="pw-match" id="pw-match"></div>
     <div class="lock-err" id="pw-err"></div>
     <button class="lock-go" id="pw-go">이 비밀번호로 바꾸기</button>
     <button class="lock-skip" id="pw-cancel" style="display:none">나중에</button>
@@ -1185,6 +1213,10 @@ async function doLogin(){
   finally{ $('#lock-go').disabled=false }
 }
 $('#lock-go').addEventListener('click',doLogin);
+$('#lock-first').addEventListener('click',()=>{
+  const h=$('#lock-help'), on=h.classList.toggle('on');
+  $('#lock-first').textContent=on?'접기':'처음이신가요?';
+});
 ['lg-code','lg-pin'].forEach(id=>$('#'+id).addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin() }));
 
 /* ── 비밀번호 바꾸기 ── */
@@ -1193,12 +1225,23 @@ function openPw(forced,who){
   pwFor=who||'user';
   $('#pw-ov').classList.add('on');
   $('#pw-1').value=''; $('#pw-2').value=''; $('#pw-err').textContent='';
-  $('#pw-tt').textContent=forced?'비밀번호를 바꿔주세요':'비밀번호 변경';
-  $('#pw-sub').textContent=forced?'임시 비밀번호로 들어왔습니다 — 내 것으로 바꿔야 시작됩니다':'새 비밀번호를 정하세요';
+  $('#pw-match').textContent=''; $('#pw-match').className='pw-match';
+  $('#pw-tt').textContent=forced?'비밀번호를 정해주세요':'비밀번호 변경';
+  $('#pw-sub').textContent=forced?'첫 비밀번호로 들어왔습니다 — 이제 내 것으로 정하면 시작됩니다':'새 비밀번호를 정하세요';
   $('#pw-cancel').style.display=forced?'none':'block';
   setTimeout(()=>$('#pw-1').focus(),200);
 }
 $('#pw-cancel').addEventListener('click',()=>$('#pw-ov').classList.remove('on'));
+/* 두 번 넣은 게 같은지 그 자리서 알려준다 */
+function pwCheck(){
+  const a=$('#pw-1').value.trim(), b=$('#pw-2').value.trim(), m=$('#pw-match');
+  m.className='pw-match';
+  if(!a||!b){ m.textContent=''; return }
+  if(a===b){ m.classList.add('ok'); m.textContent='✓ 두 번 다 같습니다' }
+  else{ m.classList.add('no'); m.textContent='아직 다릅니다' }
+}
+['pw-1','pw-2'].forEach(id=>$('#'+id).addEventListener('input',pwCheck));
+$('#pw-2').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#pw-go').click() });
 $('#pw-go').addEventListener('click',async()=>{
   const a=$('#pw-1').value.trim(), b=$('#pw-2').value.trim(), err=$('#pw-err');
   if(a.length<4){ err.textContent='4자리 이상으로 정해주세요'; return }
