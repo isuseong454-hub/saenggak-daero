@@ -95,6 +95,13 @@ svg{stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-l
   border-radius:var(--r-lg);backdrop-filter:blur(16px);padding:18px;margin-bottom:14px}
 .card h3{font-size:14px;font-weight:800;color:var(--tx2);margin-bottom:10px}
 .lbl{font-size:12px;font-weight:800;color:var(--tx3);margin:12px 2px 5px;display:block}
+.hint{font-size:12.5px;line-height:1.7;color:var(--tx2);margin-bottom:12px;text-wrap:pretty}
+.hint b{color:var(--tx1)}
+.more{margin-top:6px}
+.more summary{font-size:12.5px;font-weight:700;color:var(--tx3);padding:9px 2px;cursor:pointer;list-style:none}
+.more summary::-webkit-details-marker{display:none}
+.more summary::before{content:'▸ ';color:var(--tx3)}
+.more[open] summary::before{content:'▾ '}
 
 /* 지표 */
 .mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px}
@@ -237,8 +244,12 @@ button:not(:disabled):active{transform:scale(.96)}
   <section class="pane" id="p-new">
     <div class="card">
       <h3>새 코드 발급</h3>
+      <p class="hint">이름만 넣고 <b>만들기</b>를 누르면 됩니다 — 코드는 자동으로 만들어지고,
+        받은 사람은 첫 비밀번호 <b>2222</b>로 들어가 자기 비밀번호를 정합니다.</p>
       <label class="lbl">이름 (누구에게 주는지)</label>
       <input class="fld" id="n-name" placeholder="예) 이수성" autocomplete="off">
+      <button class="btn" id="n-quick" style="margin:4px 0 6px">이름만으로 바로 만들기 (평생)</button>
+      <details class="more"><summary>세부 설정 — 코드·기간·메모 직접 정하기</summary>
       <label class="lbl">코드 — 비우면 자동으로 만들어 줍니다</label>
       <input class="fld" id="n-code" placeholder="영문·숫자 4~24자" autocomplete="off"
              autocapitalize="none" autocorrect="off" spellcheck="false">
@@ -250,8 +261,9 @@ button:not(:disabled):active{transform:scale(.96)}
       </div>
       <label class="lbl">메모 (나만 봄)</label>
       <input class="fld" id="n-memo" placeholder="예) 3기 수강생" autocomplete="off">
+      <button class="btn ghost" id="n-go" style="margin-top:10px">이 설정으로 만들기</button>
+      </details>
       <div class="err" id="n-err"></div>
-      <button class="btn" id="n-go">코드 만들기</button>
     </div>
 
     <div class="cc-wrap" id="cc-wrap">
@@ -388,8 +400,14 @@ async function load(){
   $('#m-live').textContent=live;
   $('#m-soon').textContent=soon;
   $('#m-notes').textContent=rows.reduce((s,x)=>s+(x.notes||0),0);
-  $('#recent').innerHTML=rows.slice(0,5).map(rowHtml).join('')||'<div class="empty">아직 발급한 코드가 없습니다<br>«코드 발급»에서 첫 코드를 만들어 보세요</div>';
+  $('#recent').innerHTML=rows.slice(0,5).map(rowHtml).join('')||'<div class="empty">아직 발급한 코드가 없습니다<br>이름만 넣으면 바로 만들어집니다</div>';
   renderList();
+  /* 계정이 하나도 없으면 «코드 발급»부터 열어준다 — 첫 사용자가 헤매지 않게 */
+  if(!rows.length&&!window.__firstJump){
+    window.__firstJump=1;
+    const b=document.querySelector('#tabs button[data-t="new"]'); if(b) b.click();
+    setTimeout(()=>{ const n=$('#n-name'); if(n) n.focus() },350);
+  }
 }
 function rowHtml(x){
   const d=dleft(x.expires_at);
@@ -437,25 +455,38 @@ function autoCode(){
   let s=''; for(let i=0;i<7;i++) s+=A[Math.floor(Math.random()*A.length)];
   return s;
 }
-$('#n-go').addEventListener('click',async()=>{
-  const name=$('#n-name').value.trim(), memo=$('#n-memo').value.trim();
-  let code=$('#n-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+async function issue(opts){
+  const o=opts||{};
+  const name=$('#n-name').value.trim();
+  const memo=o.quick?'':$('#n-memo').value.trim();
+  const d=o.quick?0:days;
+  let code=o.quick?'':$('#n-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
   const err=$('#n-err'); err.textContent='';
-  if(!code) code=autoCode();
+  if(!name){ err.textContent='누구에게 주는지 이름을 넣어주세요'; $('#n-name').focus(); return }
+  if(!code) code=autoCode();                                   /* 비우면 자동 생성 */
   if(code.length<4||code.length>24){ err.textContent='코드는 영문·숫자 4~24자로'; return }
-  $('#n-go').disabled=true;
-  const r=await rpc('sgd_admin_op',{p_id:adm.id,p_pin:adm.pin,p_op:'create',p_args:{code,name,memo,days}});
-  $('#n-go').disabled=false;
+  const btns=[$('#n-go'),$('#n-quick')]; btns.forEach(b=>b&&(b.disabled=true));
+  let r=await rpc('sgd_admin_op',{p_id:adm.id,p_pin:adm.pin,p_op:'create',p_args:{code,name,memo,days:d}});
+  /* 자동 코드가 우연히 겹치면 한 번 더 뽑는다 */
+  if(r&&!r.ok&&r.msg==='dup'&&(o.quick||!$('#n-code').value.trim())){
+    code=autoCode();
+    r=await rpc('sgd_admin_op',{p_id:adm.id,p_pin:adm.pin,p_op:'create',p_args:{code,name,memo,days:d}});
+  }
+  btns.forEach(b=>b&&(b.disabled=false));
   if(!r||!r.ok){ err.textContent=msg(r&&r.msg); return }
-  $('#cc-name').textContent=name||'생각대로 회원';
-  $('#cc-plan').textContent=days?fmtD(new Date(Date.now()+days*86400000))+' 까지':'평생';
+  $('#cc-name').textContent=name;
+  $('#cc-plan').textContent=d?fmtD(new Date(Date.now()+d*86400000))+' 까지':'평생';
   $('#cc-code').textContent=code;
   $('#cc-pin').textContent='2222';
   $('#cc-wrap').classList.add('on');
   $('#n-name').value=''; $('#n-code').value=''; $('#n-memo').value='';
-  toast('코드를 만들었습니다');
+  toast(name+'님 코드를 만들었습니다');
   load();
-});
+  setTimeout(()=>$('#cc-wrap').scrollIntoView({behavior:'smooth',block:'center'}),120);
+}
+$('#n-go').addEventListener('click',()=>issue());
+$('#n-quick').addEventListener('click',()=>issue({quick:true}));
+$('#n-name').addEventListener('keydown',e=>{ if(e.key==='Enter') issue({quick:true}) });
 $('#cc-copy').addEventListener('click',()=>{
   const code=$('#cc-code').textContent, name=$('#cc-name').textContent;
   const url=location.href.replace(/admin\.html.*$/,'index.html');
