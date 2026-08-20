@@ -81,11 +81,16 @@
     : guard ? warn('반복 모션',inf+'개 선언돼 있으나 전역 차단(iteration-count:1)이 이김: '+infWho.join(','))
             : bad('반복 모션',inf+'개가 계속 돈다 — 헌법 위반: '+infWho.join(','));
 
-  /* ── 7. 로그인 화면에 계정·비번이 적혀 있나 (2026-08-15 사고) ── */
-  const lockTxt=($('#lock')||{textContent:''}).textContent||'';
-  /(qkdna|EEEEEE|2222|0000)/i.test(lockTxt)
-    ? bad('로그인 화면 비밀','계정/비번이 화면에 노출됨 — 지울 것')
-    : ok('로그인 화면 비밀','노출 없음');
+  /* ── 7. 계정·비번이 화면에 적혀 있나 (2026-08-15 사고)
+         로그인 창 + 비번 설정 창 + 안내문까지 전부 본다 (안내문에서 두 번째로 샜음) ── */
+  const secretWho=[];
+  ['#lock','#pw-ov','#lock-help'].forEach(sel=>{
+    const el=$(sel); if(!el) return;
+    if(/(qkdna|EEEEEE|2222|0000)/i.test(el.textContent||'')) secretWho.push(sel);
+  });
+  secretWho.length
+    ? bad('화면 속 비밀','계정/비번 노출: '+secretWho.join(', ')+' — 지울 것')
+    : ok('화면 속 비밀','노출 없음(로그인·비번설정·안내문)');
 
   /* ── 8. 입력칸 16px 미만 (아이폰 자동 확대) ── */
   const small=[...$$('input,textarea,select')].filter(el=>parseFloat(getComputedStyle(el).fontSize)<16)
