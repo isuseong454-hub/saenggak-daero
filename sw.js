@@ -1,5 +1,5 @@
 /* 생각대로 — 배포 때마다 숫자 ++ (배포 직전 한 번 더 ++ 확인) */
-const CACHE_NAME = 'sgd-v17';
+const CACHE_NAME = 'sgd-v18';
 const ASSETS = ['./', './index.html', './admin.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
