@@ -185,6 +185,20 @@ body.typing #scr-s1{padding-bottom:calc(var(--cap-h) + var(--kb,0px) + 6px)}
   box-shadow:0 0 0 1px color-mix(in srgb,var(--ac1) 30%,transparent) inset;padding-left:8px;padding-right:8px}
 .note.kinded{animation:kindIn .55s var(--ease)}
 @keyframes kindIn{0%{background:color-mix(in srgb,var(--ac1) 18%,transparent);border-radius:12px}100%{background:transparent}}
+/* ═══ 오래될수록 뜨거워진다 — «실행하기» 전용 ═══
+   --age(0~1)는 rowHtml 이 날짜로 계산해 인라인으로 준다. 연두 → 인주 빨강.
+   🚨 반복 모션 금지 헌법에 따라 «맥동» 없음 — 다 익으면 막대가 굵어지고 빛만 세진다.
+   씨앗(아이디어)에는 일부러 안 건다 — 묵어도 괜찮은 것이라서. */
+.note.aging{--age:0;--heat:color-mix(in srgb,var(--stamp) calc(var(--age) * 100%),var(--k-todo))}
+.note.aging .kbar.todo{background:var(--heat);
+  box-shadow:0 0 calc(var(--age) * 13px) color-mix(in srgb,var(--heat) calc(var(--age) * 70%),transparent)}
+.note.aging.old .kbar.todo{width:5px;
+  box-shadow:0 0 16px color-mix(in srgb,var(--heat) 80%,transparent)}
+.note.aging .nt small i.todo{color:var(--heat)}
+.note.aging .nt small i.age{color:var(--heat);font-weight:800}
+.note.aging .act.fin{background:linear-gradient(135deg,
+  color-mix(in srgb,var(--stamp) calc(var(--age) * 100%),var(--ac1)),
+  color-mix(in srgb,color-mix(in srgb,var(--stamp) 72%,#FFB07A) calc(var(--age) * 100%),var(--ac2)))}
 .na{display:flex;gap:6px;flex:none}
 .act{font-size:12.5px;font-weight:800;padding:8px 12px;border-radius:999px;border:1px solid var(--line);
   color:var(--tx2);transition:transform .18s var(--spring)}
@@ -689,7 +703,7 @@ const KEY='sgd-notes', THKEY='sgd-theme';
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const KIND={memo:'메모',idea:'아이디어',todo:'할 일'};
 const PICKLBL={memo:'그냥 메모',idea:'아이디어',todo:'실행하기'};
-const DAY=86400000, TODO_AGE=3, IDEA_AGE=14;
+const DAY=86400000, TODO_AGE=3, IDEA_AGE=14, TODO_OLD=45;
 const THEMES=[
   {id:'forest',n:'숲',bg:'#121410',a:'#9BC97E'},{id:'night',n:'밤',bg:'#07060B',a:'#8E7BFF'},
   {id:'dawn',n:'새벽',bg:'#0A0A0C',a:'#B9FF66'},{id:'dusk',n:'노을',bg:'#140D12',a:'#F0A6C8'},
@@ -929,6 +943,8 @@ function computeStreak(){
 function rowHtml(n,ctx){
   const k=n.kind, pick=(!k&&n.id!==pendingId)||reKind.has(n.id);
   const aged=n.st==='live'?ageDays(n.ts):0;
+  /* 실행하기가 묵을수록 0→1. 45일이면 다 익는다 */
+  const hot=(k==='todo'&&n.st==='live')?Math.min(1,Math.pow(aged/45,.55)):0;
   let right='';
   if(pick){
     right='<div class="kpick">'+['memo','idea','todo'].map(x=>
@@ -950,13 +966,15 @@ function rowHtml(n,ctx){
   if(k==='idea'&&n.st==='live'&&aged>=IDEA_AGE) tag=` · <i class="age">${aged}일 됐어요 — 아직 살아있나요?</i>`;
   const stamp=n.st==='done'?`<span class="stamp${justStamped===n.id?' hit':''}">완료!</span>`:'';
   const meta=fmtHM(n.ts)+(k?` · <i class="${k}">${KIND[k]}</i>`:' · 분류 전')+tag+(n.doneTs?' · ✓ '+fmtHM(n.doneTs):'');
-  const cls=[n.st,n.id===pendingId?'pending':'',justKinded===n.id?'kinded':''].join(' ');
+  const cls=[n.st,n.id===pendingId?'pending':'',justKinded===n.id?'kinded':'',
+    k==='todo'&&n.st==='live'?'aging':'', k==='todo'&&n.st==='live'&&aged>=TODO_OLD?'old':''].join(' ');
+  const heat=(k==='todo'&&n.st==='live')?` style="--age:${hot.toFixed(3)}"`:'';
   const ps=n.photos||[];
   const u0=ps.length?URLS.get(ps[0].id):null;
   const thumb=ps.length?`<button class="pth${u0?'':' gone'}" data-ph="${n.id}">`+
     (u0?`<img src="${u0}" alt="">`:'🖼')+(ps.length>1?`<b>${ps.length}</b>`:'')+`</button>`:'';
   const body=n.text?esc(n.text):(ps.length?'사진 '+ps.length+'장':'');
-  return `<div class="note ${cls}"><i class="kbar ${k||'none'}"></i>${thumb}`+
+  return `<div class="note ${cls}"${heat}><i class="kbar ${k||'none'}"></i>${thumb}`+
     `<div class="nt"><p>${body}</p><small>${meta}</small></div><div class="na">${right}</div>${stamp}</div>`;
 }
 const listHtml=(a,ctx,em)=>a.length?a.map(n=>rowHtml(n,ctx)).join(''):`<div class="empty">${em}</div>`;
@@ -1419,7 +1437,7 @@ async function syRpc(fn,args){
 const SYMSG={no_code:'그런 코드가 없어요',wrong:'코드나 비밀번호가 달라요',locked:'너무 많이 틀렸어요 — 5분 뒤 다시',
   code_len:'코드는 4~24자로',pin_len:'비밀번호는 4자리 이상',too_big:'글이 너무 많아 한 번에 못 올려요',
   no_server:'구름이 아직 안 켜졌어요 (SQL RUN 필요)',parse:'연결이 원활하지 않아요',
-  no_admin:'관리자 계정이 없어요 (SQL RUN 필요)',pin_temp:'임시 비밀번호와 달라야 합니다',
+  no_admin:'그런 관리자 아이디가 없어요',pin_temp:'임시 비밀번호와 달라야 합니다',
   expired:'기간이 지났어요 — 관리자에게 연장을 요청하세요',dup:'이미 있는 코드예요',bad_op:'알 수 없는 요청'};
 const syMsg=m=>SYMSG[m]||SYMSG[(m||'').replace(/^.*:\s*/,'')]||'연결이 원활하지 않아요';
 
