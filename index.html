@@ -532,6 +532,16 @@ body.picking .nh-bar{display:none}
   .nh,.nh-emblem,#kind-bar{transition:none}
   .nh-box.nudge,body.picking .kb-btns button,.nh-past.on{animation:none}
 }
+/* ═══ 마우스 광원 — «보이는» 게 아니라 «느껴지는» 정도 ═══
+   색은 그 테마의 강조색을 따라간다. 다크 앱이라 screen.
+   폰에는 안 건다 — 마지막 터치 자리에 광원이 박혀 남는다. */
+@media (hover:hover) and (pointer:fine){
+  #ptrGlow{position:fixed;inset:0;z-index:5;pointer-events:none;mix-blend-mode:screen;
+    background:radial-gradient(250px 250px at var(--gx,50%) var(--gy,32%),
+      color-mix(in srgb,var(--ac1) 11%,transparent),
+      color-mix(in srgb,var(--ac2) 4%,transparent) 42%, transparent 62%);
+    transition:background .14s linear}
+}
 </style>
 </head>
 <body class="on-s1">
@@ -617,7 +627,7 @@ body.picking .nh-bar{display:none}
     <div class="nh" id="nh">
       <div class="nh-emblem"><svg viewBox="0 0 24 24"><use href="#pen"/></svg></div>
       <div class="hi-line" id="home-hi"></div>
-      <div class="nh-sub">떠오른 것을 그냥 두고 가세요</div>
+      <div class="nh-sub" id="nh-sub">떠오른 것을 그냥 두고 가세요</div>
 
       <div class="nh-wrap">
         <div class="nh-box" id="nh-box">
@@ -1085,9 +1095,14 @@ function renderHome(){
   const bn=$('#inbox-banner');
   if(pend&&!query){ bn.style.display='flex'; bn.innerHTML=`아직 종류를 안 정한 생각 <b>${pend}개</b><span class="arr">실행 방에서 정리 ›</span>` }
   else bn.style.display='none';
-  const ds=new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'long'});
+  const hh=new Date().getHours();
+  const greet = hh<5?'늦은 밤이네요' : hh<11?'좋은 아침이에요' : hh<17?'좋은 오후예요'
+              : hh<22?'좋은 저녁이에요' : '늦은 밤이네요';
   const sk=computeStreak();
-  $('#home-hi').innerHTML=sk>=2?ds+' — <b>'+sk+'일째</b> 생각대로 사는 중':ds;
+  $('#home-hi').textContent=greet;
+  $('#nh-sub').innerHTML = sk>=2
+    ? `<b>${sk}일째</b> 생각대로 사는 중`
+    : '떠오른 것을 그냥 두고 가세요';
 }
 function renderDo(){
   const inb=notes.filter(n=>!n.kind&&n.st==='live');
@@ -1649,6 +1664,15 @@ if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostn
 /* 시작 */
 syncLockUi();
 renderSync();
+/* 마우스 광원 — rAF 없이 CSS 전환이 꼬리를 만든다 */
+if(matchMedia('(hover:hover) and (pointer:fine)').matches){
+  const g=document.createElement('div'); g.id='ptrGlow'; document.body.appendChild(g);
+  document.addEventListener('pointermove',e=>{
+    g.style.setProperty('--gx',e.clientX+'px');
+    g.style.setProperty('--gy',e.clientY+'px');
+  },{passive:true});
+}
+
 grow(); capReady();
 renderAll();
 loadUrls().then(()=>{ renderAll(); requestAnimationFrame(scrollBottom) });
